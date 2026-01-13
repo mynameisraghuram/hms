@@ -2,6 +2,8 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # backend/
 load_dotenv(BASE_DIR / ".env")
@@ -115,7 +117,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "hm_core.common.openapi.HMSAutoSchema",
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
@@ -127,12 +129,28 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "HM Software API",
     "DESCRIPTION": "Phase 0 (OPD) + Phase 1 (Lab) modular monolith backend",
     "VERSION": "0.1.0",
+
+    # Better structure & compatibility
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SORT_OPERATIONS": True,
+    "SORT_OPERATION_PARAMETERS": True,
+
+    # Show the auth scheme declared by your OpenApiAuthenticationExtension
+    # (CookieOrHeaderJWTAuthenticationScheme in hm_core/iam/openapi.py)
+    "SECURITY": [
+        {"BearerOrCookieJWT": []}
+    ],
+
+    # Remove legacy /api/* endpoints, keep /api/v1/*
+    "PREPROCESSING_HOOKS": [
+        "hm_core.common.spectacular_hooks.preprocess_exclude_legacy_api",
+    ],
+
+    # Rename the ambiguous generated enum component deterministically
+    "POSTPROCESSING_HOOKS": [
+        "hm_core.common.spectacular_postprocess.rename_status249enum_to_tenant_status_enum",
+    ],
 }
-
-from datetime import timedelta
-
-# backend/config/settings.py
-from datetime import timedelta
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
