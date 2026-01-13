@@ -17,6 +17,16 @@ class FacilityType(models.TextChoices):
     OTHER = "OTHER", "Other"
 
 
+class PricingTaxMode(models.TextChoices):
+    """
+    How ChargeItem.default_price should be interpreted for this facility:
+    - EXCLUSIVE: price excludes tax; tax is added on top.
+    - INCLUSIVE: price includes tax; we split base + tax internally.
+    """
+    EXCLUSIVE = "EXCLUSIVE", "Exclusive (tax added)"
+    INCLUSIVE = "INCLUSIVE", "Inclusive (tax included)"
+
+
 class Facility(models.Model):
     """
     A branch/hospital/clinic under a Tenant.
@@ -51,6 +61,13 @@ class Facility(models.Model):
 
     # Locale / ops
     timezone = models.CharField(max_length=64, default="Asia/Kolkata")
+
+    # Billing / pricing behavior
+    pricing_tax_mode = models.CharField(
+        max_length=16,
+        choices=PricingTaxMode.choices,
+        default=PricingTaxMode.EXCLUSIVE,
+    )
 
     # Contact (optional)
     phone = models.CharField(max_length=32, blank=True, default="")
@@ -88,6 +105,7 @@ class Facility(models.Model):
             models.Index(fields=["tenant", "is_active"]),
             models.Index(fields=["tenant", "facility_type"]),
             models.Index(fields=["tenant", "parent_facility"]),
+            models.Index(fields=["tenant", "pricing_tax_mode"]),
         ]
 
     def __str__(self) -> str:

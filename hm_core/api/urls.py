@@ -5,7 +5,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from hm_core.alerts.api.views import AlertViewSet, NotificationViewSet
-from hm_core.billing.api.views import BillableEventViewSet
+from hm_core.billing.api.views import BillableEventViewSet, InvoicePaymentsView, InvoiceViewSet
 from hm_core.clinical_docs.api.views import (
     AmendView,
     CreateDraftView,
@@ -32,6 +32,7 @@ router.register(r"orders", OrderViewSet, basename="orders")
 router.register(r"lab/samples", LabSampleViewSet, basename="lab-samples")
 router.register(r"lab/results", LabResultViewSet, basename="lab-results")
 router.register(r"billing/events", BillableEventViewSet, basename="billing-events")
+router.register(r"billing/invoices", InvoiceViewSet, basename="billing-invoices")
 router.register(r"facilities", FacilityViewSet, basename="facilities")
 router.register(r"tenants", TenantViewSet, basename="tenants")
 router.register(r"audit/events", AuditEventViewSet, basename="audit-events")
@@ -74,6 +75,13 @@ urlpatterns = [
         LatestDocumentsView.as_view(),
         name="clinical-doc-latest-per-template",
     ),
+    
+    path(
+    "billing/invoices/<uuid:invoice_id>/payments/",
+    InvoicePaymentsView.as_view(),
+    name="billing-invoice-payments",
+    ),
+
 
     # Router URLs last (so explicit paths win if ever overlapping)
     *router.urls,

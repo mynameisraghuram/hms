@@ -1,4 +1,7 @@
+# backend/hm_core/alerts/api/views.py
 from __future__ import annotations
+
+from uuid import UUID
 
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
@@ -10,8 +13,15 @@ from hm_core.alerts.services import AlertContext, AlertService
 from hm_core.alerts.api.serializers import AlertSerializer, NotificationSerializer
 
 
+_ZERO_UUID = UUID("00000000-0000-0000-0000-000000000000")
+
+
 class ScopedContextMixin:
     def ctx(self) -> AlertContext:
+        # drf-spectacular schema generation calls view methods without scope middleware.
+        if getattr(self, "swagger_fake_view", False):
+            return AlertContext(tenant_id=_ZERO_UUID, facility_id=_ZERO_UUID, actor_user_id=None)
+
         tenant_id = self.request.tenant_id
         facility_id = self.request.facility_id
         actor_user_id = getattr(self.request.user, "id", None)
@@ -22,6 +32,9 @@ class AlertViewSet(ScopedContextMixin, mixins.ListModelMixin, mixins.RetrieveMod
     serializer_class = AlertSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Alert.objects.none()
+
         c = self.ctx()
         qs = alerts_qs(tenant_id=c.tenant_id, facility_id=c.facility_id)
         status_q = self.request.query_params.get("status")
@@ -45,6 +58,9 @@ class NotificationViewSet(ScopedContextMixin, mixins.ListModelMixin, mixins.Retr
     serializer_class = NotificationSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Notification.objects.none()
+
         c = self.ctx()
         qs = notifications_qs(tenant_id=c.tenant_id, facility_id=c.facility_id, user_id=c.actor_user_id)
         is_read = self.request.query_params.get("is_read")

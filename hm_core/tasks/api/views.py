@@ -28,7 +28,7 @@ class TaskViewSet(viewsets.ViewSet):
     def _scope_ids(self, request):
         """
         Prefer request.tenant_id / request.facility_id if middleware/auth set them.
-        Otherwise fall back to headers so tests still work when middleware is disabled.
+        Otherwise fall back to headers.
         """
         tenant_id = getattr(request, "tenant_id", None) or request.META.get("HTTP_X_TENANT_ID")
         facility_id = getattr(request, "facility_id", None) or request.META.get("HTTP_X_FACILITY_ID")
@@ -47,6 +47,33 @@ class TaskViewSet(viewsets.ViewSet):
         except TaskSelector.NotFound:
             raise NotFound("Task not found in this scope.")
 
+    def _map_django_validation_error(self, e: DjangoValidationError):
+        """
+        Convert DjangoValidationError into DRFValidationError with field-keyed payload
+        whenever possible (tests expect this).
+        """
+        if hasattr(e, "message_dict") and isinstance(e.message_dict, dict) and e.message_dict:
+            raise DRFValidationError(e.message_dict)
+
+        msg = ""
+        if hasattr(e, "message"):
+            msg = str(e.message)
+        else:
+            msg = str(e)
+
+        # Heuristic mapping for selector-generated messages like:
+        # "due_before is invalid. Use ISO datetime."
+        # "ordering is invalid. Allowed: [...]"
+        lowered = msg.lower()
+        if lowered.startswith("due_before"):
+            raise DRFValidationError({"due_before": msg})
+        if lowered.startswith("due_after"):
+            raise DRFValidationError({"due_after": msg})
+        if lowered.startswith("ordering"):
+            raise DRFValidationError({"ordering": msg})
+
+        raise DRFValidationError({"detail": msg})
+
     # ----------------------------
     # Reads
     # ----------------------------
@@ -61,7 +88,7 @@ class TaskViewSet(viewsets.ViewSet):
                 params=request.query_params,
             )
         except DjangoValidationError as e:
-            raise DRFValidationError({"detail": e.message if hasattr(e, "message") else str(e)})
+            self._map_django_validation_error(e)
 
         return Response(TaskSerializer(qs[:300], many=True).data)
 
@@ -85,7 +112,7 @@ class TaskViewSet(viewsets.ViewSet):
                 assigned_to_id=int(assigned_to_id),
             )
         except DjangoValidationError as e:
-            raise DRFValidationError({"detail": str(e)})
+            self._map_django_validation_error(e)
 
         task.refresh_from_db()
         return Response(TaskSerializer(task).data, status=status.HTTP_200_OK)
@@ -102,7 +129,7 @@ class TaskViewSet(viewsets.ViewSet):
                 task_id=task.id,
             )
         except DjangoValidationError as e:
-            raise DRFValidationError({"detail": str(e)})
+            self._map_django_validation_error(e)
 
         task.refresh_from_db()
         return Response(TaskSerializer(task).data, status=status.HTTP_200_OK)
@@ -119,7 +146,7 @@ class TaskViewSet(viewsets.ViewSet):
                 task_id=task.id,
             )
         except DjangoValidationError as e:
-            raise DRFValidationError({"detail": str(e)})
+            self._map_django_validation_error(e)
 
         task.refresh_from_db()
         return Response(TaskSerializer(task).data, status=status.HTTP_200_OK)
@@ -136,7 +163,7 @@ class TaskViewSet(viewsets.ViewSet):
                 task_id=task.id,
             )
         except DjangoValidationError as e:
-            raise DRFValidationError({"detail": str(e)})
+            self._map_django_validation_error(e)
 
         task.refresh_from_db()
         return Response(TaskSerializer(task).data, status=status.HTTP_200_OK)
@@ -153,7 +180,7 @@ class TaskViewSet(viewsets.ViewSet):
                 task_id=task.id,
             )
         except DjangoValidationError as e:
-            raise DRFValidationError({"detail": str(e)})
+            self._map_django_validation_error(e)
 
         task.refresh_from_db()
         return Response(TaskSerializer(task).data, status=status.HTTP_200_OK)
@@ -170,7 +197,7 @@ class TaskViewSet(viewsets.ViewSet):
                 task_id=task.id,
             )
         except DjangoValidationError as e:
-            raise DRFValidationError({"detail": str(e)})
+            self._map_django_validation_error(e)
 
         task.refresh_from_db()
         return Response(TaskSerializer(task).data, status=status.HTTP_200_OK)

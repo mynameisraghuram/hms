@@ -12,6 +12,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from hm_core.iam.api.schema_serializers import (
+    LoginRequestSerializer,
+    LoginResponseSerializer,
+    RefreshResponseSerializer,
+    LogoutResponseSerializer,
+)
 
 def _seconds(value: Any) -> int:
     """
@@ -70,6 +77,12 @@ def _clear_auth_cookies(response: Response) -> None:
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=LoginRequestSerializer,
+        responses={200: LoginResponseSerializer},
+        tags=["IAM"],
+    )
+
     def post(self, request):
         serializer = TokenObtainPairSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -84,6 +97,12 @@ class LoginView(APIView):
 
 class RefreshView(APIView):
     permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=None,
+        responses={200: RefreshResponseSerializer},
+        tags=["IAM"],
+    )
 
     def post(self, request):
         jwt_cfg = getattr(settings, "SIMPLE_JWT", {}) or {}
@@ -103,6 +122,12 @@ class RefreshView(APIView):
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=None,
+        responses={200: LogoutResponseSerializer},
+        tags=["IAM"],
+    )
 
     def post(self, request):
         res = Response({"detail": "logged out"}, status=status.HTTP_200_OK)

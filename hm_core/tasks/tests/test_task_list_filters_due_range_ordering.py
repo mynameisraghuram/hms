@@ -7,7 +7,7 @@ from django.utils.timezone import now
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from hm_core.tasks.services import TaskService
-from hm_core.tasks.views import TaskViewSet
+from hm_core.tasks.api.views import TaskViewSet
 
 pytestmark = pytest.mark.django_db
 

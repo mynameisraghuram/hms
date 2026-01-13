@@ -13,6 +13,13 @@ from rest_framework.views import APIView
 from hm_core.iam.scope import resolve_scope_from_headers, assert_user_membership
 from hm_core.iam.services.membership import is_user_member_of_facility, list_user_facilities
 
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from hm_core.iam.api.schema_serializers import (
+    MeResponseSerializer,
+    ScopeSwitchRequestSerializer,
+    ScopeSwitchResponseSerializer,
+)
+
 
 def _parse_uuid(value: str, field_name: str) -> UUID:
     try:
@@ -23,6 +30,15 @@ def _parse_uuid(value: str, field_name: str) -> UUID:
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: MeResponseSerializer},
+        tags=["IAM"],
+        parameters=[
+            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=False, type=str),
+            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=False, type=str),
+        ],
+    )
 
     def get(self, request):
         """
@@ -63,6 +79,14 @@ class MeView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+    
+    @extend_schema(
+        request=ScopeSwitchRequestSerializer,
+        responses={200: ScopeSwitchResponseSerializer},
+        tags=["IAM"],
+    )
+    
+
 
     def post(self, request):
         """

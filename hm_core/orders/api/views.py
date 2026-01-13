@@ -12,6 +12,8 @@ from hm_core.orders.api.serializers import OrderCreateSerializer, OrderSerialize
 from hm_core.orders.selectors import OrderSelector
 from hm_core.orders.services import OrderService
 
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+
 
 class OrderViewSet(viewsets.ViewSet):
     """
@@ -21,6 +23,17 @@ class OrderViewSet(viewsets.ViewSet):
     - serializers validation
     - delegates writes to OrderService, reads to OrderSelector
     """
+
+    @extend_schema(
+        request=OrderCreateSerializer,
+        responses={201: OrderSerializer},
+        tags=["Orders"],
+        parameters=[
+            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
+            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
+            OpenApiParameter(name="Idempotency-Key", location=OpenApiParameter.HEADER, required=False, type=str),
+        ],
+    )
 
     def _scope_ids(self, request):
         tenant_id = getattr(request, "tenant_id", None) or request.META.get("HTTP_X_TENANT_ID")
@@ -70,6 +83,15 @@ class OrderViewSet(viewsets.ViewSet):
             save_response(tenant_id, facility_id, request.user.id, request.method, request.path, idem, out)
 
         return Response(out, status=status.HTTP_201_CREATED)
+    
+    @extend_schema(
+        responses={200: OrderSerializer},
+        tags=["Orders"],
+        parameters=[
+            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
+            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
+        ],
+    )
 
     def retrieve(self, request, pk=None):
         tenant_id, facility_id = self._require_scope(request)
@@ -78,6 +100,15 @@ class OrderViewSet(viewsets.ViewSet):
         except OrderSelector.NotFound:
             raise NotFound("Order not found in this scope.")
         return Response(OrderSerializer(obj).data)
+    
+    @extend_schema(
+        responses={200: OrderSerializer(many=True)},
+        tags=["Orders"],
+        parameters=[
+            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
+            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
+        ],
+    )
 
     def list(self, request):
         tenant_id, facility_id = self._require_scope(request)

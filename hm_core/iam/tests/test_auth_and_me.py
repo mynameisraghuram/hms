@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 pytestmark = pytest.mark.django_db
 
 from rest_framework_simplejwt.tokens import RefreshToken
-from hm_core.iam.services.membership import _resolve_membership_model
+from hm_core.conftest import _resolve_membership_model
 
 
 def test_me_requires_auth():

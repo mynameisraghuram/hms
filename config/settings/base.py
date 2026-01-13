@@ -30,7 +30,7 @@ INSTALLED_APPS = [
     "hm_core.common.apps.CommonConfig",
     "hm_core.tenants",
     "hm_core.facilities",
-    "hm_core.iam",
+    "hm_core.iam.apps.IamConfig",
     "hm_core.patients",
     "hm_core.encounters.apps.EncountersConfig",
     "hm_core.tasks.apps.TasksConfig",
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "hm_core.billing.apps.BillingConfig",
     "hm_core.audit",
     "hm_core.alerts.apps.AlertsConfig",
+    "hm_core.charges.apps.ChargesConfig",
 ]
 
 MIDDLEWARE = [
