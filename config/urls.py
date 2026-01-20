@@ -3,12 +3,24 @@ from django.contrib import admin
 from django.urls import include, path
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from django.http import JsonResponse
+
+def home(request):
+    return JsonResponse(
+        {
+            "status": "ok",
+            "docs": "/api/docs/",
+            "schema": "/api/schema/",
+            "api_v1": "/api/v1/",
+        }
+    )
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
     # OpenAPI
-    path("api/schema/", SpectacularAPIView.as_view(urlconf="hm_core.api.urls_v1"), name="schema"),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
 
     # ✅ Primary versioned API (frontend should use this)
@@ -19,9 +31,5 @@ urlpatterns = [
     # Keep AFTER schema/docs so those explicit routes win.
     path("api/", include("hm_core.api.urls")),
 
-    # ✅ Namespaced clinical docs routes (for reverse('clinical_docs:...') in tests)
-    path(
-        "api/v1/",
-        include(("hm_core.clinical_docs.api.urls", "clinical_docs"), namespace="clinical_docs"),
-    ),
+   
 ]

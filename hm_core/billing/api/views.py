@@ -4,6 +4,8 @@ from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -19,13 +21,12 @@ from hm_core.billing.api.serializers import (
     PaymentCreateSerializer,
     PaymentSerializer,
 )
+from hm_core.billing.models import BillableEvent, Invoice
 from hm_core.billing.selectors import billable_events_filtered, invoices_filtered
 from hm_core.billing.services import InvoiceService, PaymentService
 from hm_core.charges.selectors import get_active_charge_item
 from hm_core.facilities.models import Facility, PricingTaxMode
 from hm_core.iam.scope import MISSING_SCOPE_MSG, resolve_scope_from_headers
-
-from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 
 def _get_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | None]:
@@ -53,16 +54,31 @@ def _facility_tax_mode(*, tenant_id: UUID, facility_id: UUID) -> str:
     return facility.pricing_tax_mode if facility else PricingTaxMode.EXCLUSIVE
 
 
-class BillableEventViewSet(viewsets.ViewSet):
+class BillableEventViewSet(viewsets.GenericViewSet):
+    """
+    Billing events (read-only in v1).
+    """
+    serializer_class = BillableEventSerializer
+    queryset = BillableEvent.objects.none()
 
     @extend_schema(
-        responses={200: BillableEventSerializer(many=True)},
         tags=["Billing"],
+        responses={200: BillableEventSerializer(many=True)},
         parameters=[
-            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="encounter", location=OpenApiParameter.QUERY, required=False, type=str),
-            OpenApiParameter(name="patient", location=OpenApiParameter.QUERY, required=False, type=str),
+            OpenApiParameter(
+                name="encounter",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by encounter UUID.",
+            ),
+            OpenApiParameter(
+                name="patient",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by patient UUID.",
+            ),
         ],
     )
     def list(self, request):
@@ -86,7 +102,7 @@ class BillableEventViewSet(viewsets.ViewSet):
         return Response(BillableEventSerializer(qs, many=True).data, status=status.HTTP_200_OK)
 
 
-class InvoiceViewSet(viewsets.ViewSet):
+class InvoiceViewSet(viewsets.GenericViewSet):
     """
     Billing v1 invoices:
     - list/retrieve
@@ -96,18 +112,20 @@ class InvoiceViewSet(viewsets.ViewSet):
     - void
     - lines: GET/POST (manual add)
     """
+    serializer_class = InvoiceSerializer
+
+    # ✅ Critical for drf-spectacular: lets it infer UUID path params cleanly.
+    queryset = Invoice.objects.none()
+
     @extend_schema(
-        responses={200: InvoiceSerializer(many=True)},
         tags=["Billing"],
+        responses={200: InvoiceSerializer(many=True)},
         parameters=[
-            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="patient", location=OpenApiParameter.QUERY, required=False, type=str),
-            OpenApiParameter(name="encounter", location=OpenApiParameter.QUERY, required=False, type=str),
-            OpenApiParameter(name="status", location=OpenApiParameter.QUERY, required=False, type=str),
+            OpenApiParameter(name="patient", type=OpenApiTypes.UUID, location=OpenApiParameter.QUERY, required=False),
+            OpenApiParameter(name="encounter", type=OpenApiTypes.UUID, location=OpenApiParameter.QUERY, required=False),
+            OpenApiParameter(name="status", type=OpenApiTypes.STR, location=OpenApiParameter.QUERY, required=False),
         ],
     )
-
     def list(self, request):
         tenant_id, facility_id, err = _get_scope_or_400(request)
         if err:
@@ -126,16 +144,11 @@ class InvoiceViewSet(viewsets.ViewSet):
         )
 
         return Response(InvoiceSerializer(qs, many=True).data, status=status.HTTP_200_OK)
-    
-    @extend_schema(
-        responses={200: InvoiceSerializer},
-        tags=["Billing"],
-        parameters=[
-            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-        ],
-    )
 
+    @extend_schema(
+        tags=["Billing"],
+        responses={200: InvoiceSerializer},
+    )
     def retrieve(self, request, pk=None):
         tenant_id, facility_id, err = _get_scope_or_400(request)
         if err:
@@ -144,17 +157,12 @@ class InvoiceViewSet(viewsets.ViewSet):
         inv_id = UUID(str(pk))
         inv = invoices_filtered(tenant_id=tenant_id, facility_id=facility_id).get(id=inv_id)
         return Response(InvoiceSerializer(inv).data, status=status.HTTP_200_OK)
-    
+
     @extend_schema(
+        tags=["Billing"],
         request=InvoiceCreateSerializer,
         responses={201: InvoiceSerializer},
-        tags=["Billing"],
-        parameters=[
-            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-        ],
     )
-
     def create(self, request):
         tenant_id, facility_id, err = _get_scope_or_400(request)
         if err:
@@ -175,17 +183,14 @@ class InvoiceViewSet(viewsets.ViewSet):
             notes=notes,
         )
         return Response(InvoiceSerializer(inv).data, status=status.HTTP_201_CREATED)
-    
-    @extend_schema(
-        request=InvoiceGenerateFromEventsSerializer,
-        responses={200: None},
-        tags=["Billing"],
-        parameters=[
-            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-        ],
-    )
 
+    @extend_schema(
+        tags=["Billing"],
+        request=InvoiceGenerateFromEventsSerializer,
+        responses={
+            200: OpenApiTypes.OBJECT,
+        },
+    )
     @action(detail=True, methods=["post"], url_path="generate_from_events")
     def generate_from_events(self, request, pk=None):
         tenant_id, facility_id, err = _get_scope_or_400(request)
@@ -205,6 +210,10 @@ class InvoiceViewSet(viewsets.ViewSet):
         )
         return Response({"created_lines": created}, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        tags=["Billing"],
+        responses={200: InvoiceSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="issue")
     def issue(self, request, pk=None):
         tenant_id, facility_id, err = _get_scope_or_400(request)
@@ -218,6 +227,20 @@ class InvoiceViewSet(viewsets.ViewSet):
         )
         return Response(InvoiceSerializer(inv).data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        tags=["Billing"],
+        request=OpenApiTypes.OBJECT,
+        responses={200: InvoiceSerializer},
+        parameters=[
+            OpenApiParameter(
+                name="reason",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Optional void reason (you can also send in JSON body).",
+            )
+        ],
+    )
     @action(detail=True, methods=["post"], url_path="void")
     def void(self, request, pk=None):
         tenant_id, facility_id, err = _get_scope_or_400(request)
@@ -235,17 +258,15 @@ class InvoiceViewSet(viewsets.ViewSet):
             reason=reason,
         )
         return Response(InvoiceSerializer(inv).data, status=status.HTTP_200_OK)
-    
-    @extend_schema(
-        request=InvoiceLineCreateSerializer,
-        responses={200: InvoiceLineSerializer(many=True), 201: InvoiceLineSerializer},
-        tags=["Billing"],
-        parameters=[
-            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-        ],
-    )
 
+    @extend_schema(
+        tags=["Billing"],
+        request=InvoiceLineCreateSerializer,
+        responses={
+            200: InvoiceLineSerializer(many=True),
+            201: InvoiceLineSerializer,
+        },
+    )
     @action(detail=True, methods=["get", "post"], url_path="lines")
     def lines(self, request, pk=None):
         """
@@ -343,14 +364,9 @@ class InvoicePaymentsView(APIView):
     """
 
     @extend_schema(
-        responses={200: PaymentSerializer(many=True)},
         tags=["Billing"],
-        parameters=[
-            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-        ],
+        responses={200: PaymentSerializer(many=True)},
     )
-
     def get(self, request, invoice_id: UUID):
         tenant_id, facility_id, err = _get_scope_or_400(request)
         if err:
@@ -361,17 +377,12 @@ class InvoicePaymentsView(APIView):
 
         payments = inv.payments.order_by("-received_at")
         return Response(PaymentSerializer(payments, many=True).data, status=status.HTTP_200_OK)
-    
+
     @extend_schema(
+        tags=["Billing"],
         request=PaymentCreateSerializer,
         responses={201: PaymentSerializer},
-        tags=["Billing"],
-        parameters=[
-            OpenApiParameter(name="X-Tenant-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-            OpenApiParameter(name="X-Facility-Id", location=OpenApiParameter.HEADER, required=True, type=str),
-        ],
     )
-
     def post(self, request, invoice_id: UUID):
         tenant_id, facility_id, err = _get_scope_or_400(request)
         if err:

@@ -3,13 +3,16 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from hm_core.iam.scope import MISSING_SCOPE_MSG, resolve_scope_from_headers
 from hm_core.audit.api.serializers import AuditEventSerializer
+from hm_core.audit.models import AuditEvent
 from hm_core.audit.selectors import list_audit_events
+from hm_core.iam.scope import MISSING_SCOPE_MSG, resolve_scope_from_headers
 
 
 def _get_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | None]:
@@ -33,9 +36,57 @@ def _get_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | Non
     return scope.tenant_id, scope.facility_id, None
 
 
-class AuditEventViewSet(viewsets.ViewSet):
+class AuditEventViewSet(viewsets.GenericViewSet):
+    """
+    List audit/timeline events (scoped).
+    """
     permission_classes = [IsAuthenticated]
 
+    # ✅ Makes drf-spectacular happy:
+    serializer_class = AuditEventSerializer
+    queryset = AuditEvent.objects.none()
+
+    @extend_schema(
+        tags=["Audit"],
+        responses={200: AuditEventSerializer(many=True)},
+        parameters=[
+            OpenApiParameter(
+                name="entity_type",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by entity type (e.g. Encounter, OrderItem, Invoice).",
+            ),
+            OpenApiParameter(
+                name="entity_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by entity UUID.",
+            ),
+            OpenApiParameter(
+                name="event_code",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by event code (e.g. encounter.closed, lab.result.released).",
+            ),
+            OpenApiParameter(
+                name="actor_user_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by actor user id (int).",
+            ),
+            OpenApiParameter(
+                name="limit",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Max records to return (default 200, max 500).",
+            ),
+        ],
+    )
     def list(self, request):
         tenant_id, facility_id, err = _get_scope_or_400(request)
         if err is not None:

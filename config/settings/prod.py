@@ -1,4 +1,11 @@
-from .base import *  # noqa
+# config/settings/prod.py
 
-DEBUG = False
-ALLOWED_HOSTS = ["your-domain.com"]
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "https://app.yourdomain.com",
+    "https://admin.yourdomain.com",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+SIMPLE_JWT["AUTH_COOKIE_SECURE"] = True
+SIMPLE_JWT["AUTH_COOKIE_SAMESITE"] = "Lax"  # keep Lax if same-site via subdomain strategy

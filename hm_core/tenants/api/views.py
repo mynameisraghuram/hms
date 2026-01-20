@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
@@ -14,10 +15,18 @@ from hm_core.tenants.api.serializers import (
     TenantSerializer,
     TenantStatusUpdateSerializer,
 )
+from hm_core.tenants.models import Tenant
 from hm_core.tenants.selectors import tenant_qs
 from hm_core.tenants.services import TenantService
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Tenants"], operation_id="v1_tenants_list", responses={200: TenantSerializer(many=True)}),
+    retrieve=extend_schema(tags=["Tenants"], operation_id="v1_tenants_retrieve", responses={200: TenantSerializer}),
+    create=extend_schema(tags=["Tenants"], operation_id="v1_tenants_create", request=TenantCreateSerializer, responses={201: TenantSerializer}),
+    set_status=extend_schema(tags=["Tenants"], operation_id="v1_tenants_set_status", request=TenantStatusUpdateSerializer, responses={200: TenantSerializer}),
+    set_metadata=extend_schema(tags=["Tenants"], operation_id="v1_tenants_set_metadata", request=TenantMetadataUpdateSerializer, responses={200: TenantSerializer}),
+)
 class TenantViewSet(viewsets.ViewSet):
     """
     Admin-only tenant management.
@@ -25,6 +34,10 @@ class TenantViewSet(viewsets.ViewSet):
     """
 
     permission_classes = [IsAdminUser]
+
+    # ✅ critical for drf-spectacular
+    serializer_class = TenantSerializer
+    queryset = Tenant.objects.none()
 
     def list(self, request):
         qs = tenant_qs().order_by("-created_at")[:300]

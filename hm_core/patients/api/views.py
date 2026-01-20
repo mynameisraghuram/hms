@@ -7,9 +7,10 @@ from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 
-from hm_core.iam.scope import MISSING_SCOPE_MSG, resolve_scope_from_headers
 from hm_core.common.permissions import PatientPermission
+from hm_core.iam.scope import MISSING_SCOPE_MSG, resolve_scope_from_headers
 from hm_core.patients.api.serializers import PatientCreateSerializer, PatientSerializer
+from hm_core.patients.models import Patient
 from hm_core.patients.selectors import search_patients
 from hm_core.patients.services import PatientService
 
@@ -42,6 +43,10 @@ def _get_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | Non
 
 class PatientViewSet(viewsets.ViewSet):
     permission_classes = [PatientPermission]
+
+    # ✅ these two lines fix spectacular + path param typing
+    serializer_class = PatientSerializer
+    queryset = Patient.objects.none()
 
     def list(self, request):
         tenant_id, facility_id, err = _get_scope_or_400(request)

@@ -118,11 +118,19 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ),
     "DEFAULT_SCHEMA_CLASS": "hm_core.common.openapi.HMSAutoSchema",
+
+    # ✅ Step 3.1: Standard error envelope
+    "EXCEPTION_HANDLER": "hm_core.common.api.exceptions.api_exception_handler",
+
+    # ✅ Step 3.2/3.3: Filtering + ordering + search support everywhere
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.OrderingFilter",
+        "rest_framework.filters.SearchFilter",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 20,
+
+    # ✅ Step 3.2: Default pagination
+    "DEFAULT_PAGINATION_CLASS": "hm_core.common.api.pagination.DefaultPagination",
 }
 
 SPECTACULAR_SETTINGS = {

@@ -1,3 +1,5 @@
+#backend/hm_core/tasks/tests/test_task_list_filters_due_range_ordering.py
+
 import pytest
 from datetime import timedelta
 
@@ -140,7 +142,9 @@ def test_invalid_due_before_returns_400(encounter):
         params={"due_before": "not-a-datetime"},
     )
     assert resp.status_code == 400
-    assert "due_before" in resp.data
+    assert resp.data["error"]["code"] == "validation_error"
+    assert "due_before" in resp.data["error"]["details"]
+
 
 
 def test_ordering_due_at_ascending(encounter):
@@ -200,4 +204,6 @@ def test_invalid_ordering_returns_400(encounter):
         params={"ordering": "DROP TABLE tasks_task;"},
     )
     assert resp.status_code == 400
-    assert "ordering" in resp.data
+    assert resp.data["error"]["code"] == "validation_error"
+    assert "ordering" in resp.data["error"]["details"]
+

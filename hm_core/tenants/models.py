@@ -5,6 +5,7 @@ from django.db import models
 
 class TenantStatus(models.TextChoices):
     ACTIVE = "ACTIVE", "Active"
+    INACTIVE = "INACTIVE", "Inactive"
     SUSPENDED = "SUSPENDED", "Suspended"
     DELETED = "DELETED", "Deleted"
 

@@ -1,0 +1,3729 @@
+openapi: 3.0.3
+info:
+  title: HM Software API
+  version: 0.1.0
+  description: Phase 0 (OPD) + Phase 1 (Lab) modular monolith backend
+paths:
+  /api/alerts/:
+    get:
+      operationId: alerts_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - alerts
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAlertList'
+          description: ''
+  /api/alerts/{id}/:
+    get:
+      operationId: alerts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this alert.
+        required: true
+      tags:
+      - alerts
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+          description: ''
+  /api/alerts/{id}/ack/:
+    post:
+      operationId: alerts_ack_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this alert.
+        required: true
+      tags:
+      - alerts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Alert'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Alert'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Alert'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+          description: ''
+  /api/audit/events/:
+    get:
+      operationId: audit_events_retrieve
+      tags:
+      - audit
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      tags:
+      - IAM
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /api/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - IAM
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+          description: ''
+  /api/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      tags:
+      - IAM
+      security:
+      - CookieOrBearerJWT: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+          description: ''
+  /api/billing/events/:
+    get:
+      operationId: billing_events_list
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: encounter
+        schema:
+          type: string
+      - in: query
+        name: patient
+        schema:
+          type: string
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BillableEvent'
+          description: ''
+  /api/billing/invoices/:
+    get:
+      operationId: billing_invoices_list
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: encounter
+        schema:
+          type: string
+      - in: query
+        name: patient
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+          description: ''
+    post:
+      operationId: billing_invoices_create
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/billing/invoices/{invoice_id}/payments/:
+    get:
+      operationId: billing_invoices_payments_list
+      description: |-
+        /billing/invoices/<invoice_id>/payments/
+        - GET list payments
+        - POST record a payment
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: invoice_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+    post:
+      operationId: billing_invoices_payments_create
+      description: |-
+        /billing/invoices/<invoice_id>/payments/
+        - GET list payments
+        - POST record a payment
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: invoice_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/billing/invoices/{id}/:
+    get:
+      operationId: billing_invoices_retrieve
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/billing/invoices/{id}/generate_from_events/:
+    post:
+      operationId: billing_invoices_generate_from_events_create
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceGenerateFromEvents'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoiceGenerateFromEvents'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoiceGenerateFromEvents'
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/billing/invoices/{id}/issue/:
+    post:
+      operationId: billing_invoices_issue_create
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/billing/invoices/{id}/lines/:
+    get:
+      operationId: billing_invoices_lines_list
+      description: |-
+        /billing/invoices/<invoice_id>/lines/
+        - GET: list lines
+        - POST: add manual line to DRAFT invoice
+
+        Defaults:
+        - If price_includes_tax is omitted, we default based on facility.pricing_tax_mode:
+            * INCLUSIVE => includes tax
+            * EXCLUSIVE => excludes tax
+        - If tax_percent omitted and chargeable_code present, we try Charge Master tax_percent.
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceLine'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceLine'
+          description: ''
+    post:
+      operationId: billing_invoices_lines_create
+      description: |-
+        /billing/invoices/<invoice_id>/lines/
+        - GET: list lines
+        - POST: add manual line to DRAFT invoice
+
+        Defaults:
+        - If price_includes_tax is omitted, we default based on facility.pricing_tax_mode:
+            * INCLUSIVE => includes tax
+            * EXCLUSIVE => excludes tax
+        - If tax_percent omitted and chargeable_code present, we try Charge Master tax_percent.
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceLineCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoiceLineCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoiceLineCreate'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceLine'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceLine'
+          description: ''
+  /api/billing/invoices/{id}/void/:
+    post:
+      operationId: billing_invoices_void_create
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/documents/{document_id}/amend/:
+    post:
+      operationId: documents_amend_create
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - documents
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/documents/{document_id}/finalize/:
+    post:
+      operationId: documents_finalize_create
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - documents
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{encounter_id}/documents/draft/:
+    post:
+      operationId: encounters_documents_draft_create
+      parameters:
+      - in: path
+        name: encounter_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{encounter_id}/documents/latest/:
+    get:
+      operationId: encounters_documents_latest_retrieve
+      parameters:
+      - in: path
+        name: encounter_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{id}/assessment/:
+    post:
+      operationId: encounters_assessment_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{id}/checkin/:
+    post:
+      operationId: encounters_checkin_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{id}/close/:
+    post:
+      operationId: encounters_close_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{id}/close-gate/:
+    get:
+      operationId: encounters_close_gate_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{id}/close-strict/:
+    post:
+      operationId: encounters_close_strict_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{id}/plan/:
+    post:
+      operationId: encounters_plan_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{id}/timeline/:
+    get:
+      operationId: encounters_timeline_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/encounters/{id}/vitals/:
+    post:
+      operationId: encounters_vitals_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - encounters
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/facilities/:
+    get:
+      operationId: facilities_retrieve
+      tags:
+      - facilities
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: facilities_create
+      tags:
+      - facilities
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/facilities/{id}/:
+    get:
+      operationId: facilities_retrieve_2
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - facilities
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: facilities_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - facilities
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/facilities/{id}/deactivate/:
+    post:
+      operationId: facilities_deactivate_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - facilities
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/lab/results/:
+    post:
+      operationId: lab_results_create
+      tags:
+      - lab
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/lab/results/{id}/release/:
+    post:
+      operationId: lab_results_release_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - lab
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/lab/results/{id}/verify/:
+    post:
+      operationId: lab_results_verify_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - lab
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/lab/samples/receive/:
+    post:
+      operationId: lab_samples_receive_create
+      tags:
+      - lab
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/me/:
+    get:
+      operationId: me_retrieve
+      description: |-
+        Returns user info + memberships.
+        Scope headers are OPTIONAL for GET /me.
+        If scope headers are provided, they MUST be valid and user MUST be a member, else 400/403.
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+      tags:
+      - IAM
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+          description: ''
+    post:
+      operationId: me_create
+      description: |-
+        Switch active tenant/facility scope.
+        Expects: {"tenant_id": "uuid", "facility_id": "uuid"}
+
+        Note: Server cannot "set headers" for the client; client should use returned scope
+        and send X-Tenant-Id / X-Facility-Id headers in subsequent requests.
+      tags:
+      - IAM
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScopeSwitchRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScopeSwitchRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScopeSwitchRequest'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScopeSwitchResponse'
+          description: ''
+  /api/notifications/:
+    get:
+      operationId: notifications_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - notifications
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/notifications/{id}/:
+    get:
+      operationId: notifications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this notification.
+        required: true
+      tags:
+      - notifications
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/notifications/{id}/mark-read/:
+    post:
+      operationId: notifications_mark_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this notification.
+        required: true
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notification'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/orders/:
+    get:
+      operationId: orders_list
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - idempotency caching
+        - serializers validation
+        - delegates writes to OrderService, reads to OrderSelector
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Orders
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+    post:
+      operationId: orders_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - idempotency caching
+        - serializers validation
+        - delegates writes to OrderService, reads to OrderSelector
+      tags:
+      - orders
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/orders/{id}/:
+    get:
+      operationId: orders_retrieve
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - idempotency caching
+        - serializers validation
+        - delegates writes to OrderService, reads to OrderSelector
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Orders
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/patients/:
+    get:
+      operationId: patients_retrieve
+      tags:
+      - patients
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: patients_create
+      tags:
+      - patients
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - CookieOrBearerJWT: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/tasks/:
+    get:
+      operationId: tasks_retrieve
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      tags:
+      - tasks
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tasks/{id}/assign/:
+    post:
+      operationId: tasks_assign_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tasks
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tasks/{id}/cancel/:
+    post:
+      operationId: tasks_cancel_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tasks
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tasks/{id}/done/:
+    post:
+      operationId: tasks_done_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tasks
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tasks/{id}/reopen/:
+    post:
+      operationId: tasks_reopen_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tasks
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tasks/{id}/start/:
+    post:
+      operationId: tasks_start_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tasks
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tasks/{id}/unassign/:
+    post:
+      operationId: tasks_unassign_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tasks
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tasks/backfill-done/:
+    post:
+      operationId: tasks_backfill_done_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      tags:
+      - tasks
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tenants/:
+    get:
+      operationId: tenants_retrieve
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      tags:
+      - tenants
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: tenants_create
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      tags:
+      - tenants
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/tenants/{id}/:
+    get:
+      operationId: tenants_retrieve_2
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tenants
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tenants/{id}/set-metadata/:
+    post:
+      operationId: tenants_set_metadata_create
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tenants
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/tenants/{id}/set-status/:
+    post:
+      operationId: tenants_set_status_create
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tenants
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/alerts/:
+    get:
+      operationId: v1_alerts_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAlertList'
+          description: ''
+  /api/v1/alerts/{id}/:
+    get:
+      operationId: v1_alerts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this alert.
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+          description: ''
+  /api/v1/alerts/{id}/ack/:
+    post:
+      operationId: v1_alerts_ack_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this alert.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Alert'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Alert'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Alert'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+          description: ''
+  /api/v1/audit/events/:
+    get:
+      operationId: v1_audit_events_retrieve
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/login/:
+    post:
+      operationId: v1_auth_login_create
+      tags:
+      - IAM
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: v1_auth_logout_create
+      tags:
+      - IAM
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+          description: ''
+  /api/v1/auth/refresh/:
+    post:
+      operationId: v1_auth_refresh_create
+      tags:
+      - IAM
+      security:
+      - CookieOrBearerJWT: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+          description: ''
+  /api/v1/billing/events/:
+    get:
+      operationId: v1_billing_events_list
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: encounter
+        schema:
+          type: string
+      - in: query
+        name: patient
+        schema:
+          type: string
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BillableEvent'
+          description: ''
+  /api/v1/billing/invoices/:
+    get:
+      operationId: v1_billing_invoices_list
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: encounter
+        schema:
+          type: string
+      - in: query
+        name: patient
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+          description: ''
+    post:
+      operationId: v1_billing_invoices_create
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/v1/billing/invoices/{invoice_id}/payments/:
+    get:
+      operationId: v1_billing_invoices_payments_list
+      description: |-
+        /billing/invoices/<invoice_id>/payments/
+        - GET list payments
+        - POST record a payment
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: invoice_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+    post:
+      operationId: v1_billing_invoices_payments_create
+      description: |-
+        /billing/invoices/<invoice_id>/payments/
+        - GET list payments
+        - POST record a payment
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: invoice_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/v1/billing/invoices/{id}/:
+    get:
+      operationId: v1_billing_invoices_retrieve
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/v1/billing/invoices/{id}/generate_from_events/:
+    post:
+      operationId: v1_billing_invoices_generate_from_events_create
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceGenerateFromEvents'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoiceGenerateFromEvents'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoiceGenerateFromEvents'
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/billing/invoices/{id}/issue/:
+    post:
+      operationId: v1_billing_invoices_issue_create
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/billing/invoices/{id}/lines/:
+    get:
+      operationId: v1_billing_invoices_lines_list
+      description: |-
+        /billing/invoices/<invoice_id>/lines/
+        - GET: list lines
+        - POST: add manual line to DRAFT invoice
+
+        Defaults:
+        - If price_includes_tax is omitted, we default based on facility.pricing_tax_mode:
+            * INCLUSIVE => includes tax
+            * EXCLUSIVE => excludes tax
+        - If tax_percent omitted and chargeable_code present, we try Charge Master tax_percent.
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceLine'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceLine'
+          description: ''
+    post:
+      operationId: v1_billing_invoices_lines_create
+      description: |-
+        /billing/invoices/<invoice_id>/lines/
+        - GET: list lines
+        - POST: add manual line to DRAFT invoice
+
+        Defaults:
+        - If price_includes_tax is omitted, we default based on facility.pricing_tax_mode:
+            * INCLUSIVE => includes tax
+            * EXCLUSIVE => excludes tax
+        - If tax_percent omitted and chargeable_code present, we try Charge Master tax_percent.
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceLineCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoiceLineCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoiceLineCreate'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvoiceLine'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceLine'
+          description: ''
+  /api/v1/billing/invoices/{id}/void/:
+    post:
+      operationId: v1_billing_invoices_void_create
+      description: |-
+        Billing v1 invoices:
+        - list/retrieve
+        - create draft
+        - generate_from_events
+        - issue
+        - void
+        - lines: GET/POST (manual add)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/documents/{document_id}/amend/:
+    post:
+      operationId: v1_documents_amend_create
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/documents/{document_id}/finalize/:
+    post:
+      operationId: v1_documents_finalize_create
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{encounter_id}/documents/draft/:
+    post:
+      operationId: v1_encounters_documents_draft_create
+      parameters:
+      - in: path
+        name: encounter_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{encounter_id}/documents/latest/:
+    get:
+      operationId: v1_encounters_documents_latest_retrieve
+      parameters:
+      - in: path
+        name: encounter_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{id}/assessment/:
+    post:
+      operationId: v1_encounters_assessment_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{id}/checkin/:
+    post:
+      operationId: v1_encounters_checkin_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{id}/close/:
+    post:
+      operationId: v1_encounters_close_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{id}/close-gate/:
+    get:
+      operationId: v1_encounters_close_gate_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{id}/close-strict/:
+    post:
+      operationId: v1_encounters_close_strict_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{id}/plan/:
+    post:
+      operationId: v1_encounters_plan_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{id}/timeline/:
+    get:
+      operationId: v1_encounters_timeline_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/encounters/{id}/vitals/:
+    post:
+      operationId: v1_encounters_vitals_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/facilities/:
+    get:
+      operationId: v1_facilities_retrieve
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_facilities_create
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/facilities/{id}/:
+    get:
+      operationId: v1_facilities_retrieve_2
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: v1_facilities_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/facilities/{id}/deactivate/:
+    post:
+      operationId: v1_facilities_deactivate_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/lab/results/:
+    post:
+      operationId: v1_lab_results_create
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/lab/results/{id}/release/:
+    post:
+      operationId: v1_lab_results_release_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/lab/results/{id}/verify/:
+    post:
+      operationId: v1_lab_results_verify_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/lab/samples/receive/:
+    post:
+      operationId: v1_lab_samples_receive_create
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/me/:
+    get:
+      operationId: v1_me_retrieve
+      description: |-
+        Returns user info + memberships.
+        Scope headers are OPTIONAL for GET /me.
+        If scope headers are provided, they MUST be valid and user MUST be a member, else 400/403.
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+      tags:
+      - IAM
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+          description: ''
+    post:
+      operationId: v1_me_create
+      description: |-
+        Switch active tenant/facility scope.
+        Expects: {"tenant_id": "uuid", "facility_id": "uuid"}
+
+        Note: Server cannot "set headers" for the client; client should use returned scope
+        and send X-Tenant-Id / X-Facility-Id headers in subsequent requests.
+      tags:
+      - IAM
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScopeSwitchRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScopeSwitchRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScopeSwitchRequest'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScopeSwitchResponse'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: v1_notifications_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/:
+    get:
+      operationId: v1_notifications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this notification.
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/{id}/mark-read/:
+    post:
+      operationId: v1_notifications_mark_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this notification.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notification'
+        required: true
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/orders/:
+    get:
+      operationId: v1_orders_list
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - idempotency caching
+        - serializers validation
+        - delegates writes to OrderService, reads to OrderSelector
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Orders
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+    post:
+      operationId: v1_orders_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - idempotency caching
+        - serializers validation
+        - delegates writes to OrderService, reads to OrderSelector
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/orders/{id}/:
+    get:
+      operationId: v1_orders_retrieve
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - idempotency caching
+        - serializers validation
+        - delegates writes to OrderService, reads to OrderSelector
+      parameters:
+      - in: header
+        name: X-Facility-Id
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Tenant-Id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Orders
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/patients/:
+    get:
+      operationId: v1_patients_retrieve
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_patients_create
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/tasks/:
+    get:
+      operationId: v1_tasks_retrieve
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tasks/{id}/assign/:
+    post:
+      operationId: v1_tasks_assign_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tasks/{id}/cancel/:
+    post:
+      operationId: v1_tasks_cancel_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tasks/{id}/done/:
+    post:
+      operationId: v1_tasks_done_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tasks/{id}/reopen/:
+    post:
+      operationId: v1_tasks_reopen_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tasks/{id}/start/:
+    post:
+      operationId: v1_tasks_start_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tasks/{id}/unassign/:
+    post:
+      operationId: v1_tasks_unassign_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tasks/backfill-done/:
+    post:
+      operationId: v1_tasks_backfill_done_create
+      description: |-
+        Thin API layer:
+        - scope parsing
+        - validation mapping
+        - calls selectors for reads
+        - calls services for writes
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tenants/:
+    get:
+      operationId: v1_tenants_retrieve
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_tenants_create
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/tenants/{id}/:
+    get:
+      operationId: v1_tenants_retrieve_2
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tenants/{id}/set-metadata/:
+    post:
+      operationId: v1_tenants_set_metadata_create
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/tenants/{id}/set-status/:
+    post:
+      operationId: v1_tenants_set_status_create
+      description: |-
+        Admin-only tenant management.
+        Routing is centralized in hm_core/api/urls.py (locked standard).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CookieOrBearerJWT: []
+      responses:
+        '200':
+          description: No response body
+components:
+  schemas:
+    ActiveScope:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        facility_id:
+          type: string
+          format: uuid
+      required:
+      - facility_id
+      - tenant_id
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 64
+          pattern: ^[-a-zA-Z0-9_]+$
+        title:
+          type: string
+          maxLength: 255
+        message:
+          type: string
+        severity:
+          $ref: '#/components/schemas/SeverityEnum'
+        status:
+          $ref: '#/components/schemas/AlertStatusEnum'
+        encounter_id:
+          type: string
+          format: uuid
+          nullable: true
+        task_id:
+          type: string
+          format: uuid
+          nullable: true
+        patient_id:
+          type: string
+          format: uuid
+          nullable: true
+        lab_result_id:
+          type: string
+          format: uuid
+          nullable: true
+        acked_by_user_id:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        acked_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        meta: {}
+      required:
+      - code
+      - created_at
+      - id
+      - title
+      - updated_at
+    AlertStatusEnum:
+      enum:
+      - OPEN
+      - ACKED
+      - RESOLVED
+      - DISMISSED
+      type: string
+      description: |-
+        * `OPEN` - Open
+        * `ACKED` - Acknowledged
+        * `RESOLVED` - Resolved
+        * `DISMISSED` - Dismissed
+    BillableEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        tenant_id:
+          type: string
+          format: uuid
+          readOnly: true
+        facility_id:
+          type: string
+          format: uuid
+          readOnly: true
+        encounter:
+          type: string
+          format: uuid
+          readOnly: true
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          readOnly: true
+        chargeable_code:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        quantity:
+          type: integer
+          readOnly: true
+        source_order_item:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - chargeable_code
+      - created_at
+      - encounter
+      - event_type
+      - facility_id
+      - id
+      - quantity
+      - source_order_item
+      - tenant_id
+      - updated_at
+    ChannelEnum:
+      enum:
+      - IN_APP
+      - EMAIL
+      - SMS
+      - WHATSAPP
+      type: string
+      description: |-
+        * `IN_APP` - In App
+        * `EMAIL` - Email
+        * `SMS` - SMS
+        * `WHATSAPP` - WhatsApp
+    EventTypeEnum:
+      enum:
+      - SERVICE_DELIVERED
+      type: string
+      description: '* `SERVICE_DELIVERED` - Service Delivered'
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        tenant_id:
+          type: string
+          format: uuid
+          readOnly: true
+        facility_id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+          readOnly: true
+        encounter:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        invoice_number:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceStatusEnum'
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        discount_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        tax_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        grand_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        amount_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        balance_due:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        issued_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        due_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        voided_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        notes:
+          type: string
+          readOnly: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLine'
+          readOnly: true
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount_paid
+      - balance_due
+      - created_at
+      - currency
+      - discount_total
+      - due_at
+      - encounter
+      - facility_id
+      - grand_total
+      - id
+      - invoice_number
+      - issued_at
+      - lines
+      - notes
+      - paid_at
+      - patient
+      - payments
+      - status
+      - subtotal
+      - tax_total
+      - tenant_id
+      - updated_at
+      - voided_at
+    InvoiceCreate:
+      type: object
+      properties:
+        patient:
+          type: string
+          format: uuid
+        encounter:
+          type: string
+          format: uuid
+          nullable: true
+        notes:
+          type: string
+          default: ''
+      required:
+      - patient
+    InvoiceGenerateFromEvents:
+      type: object
+      properties:
+        encounter:
+          type: string
+          format: uuid
+          nullable: true
+        patient:
+          type: string
+          format: uuid
+          nullable: true
+        default_unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          default: '0.00'
+    InvoiceLine:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        tenant_id:
+          type: string
+          format: uuid
+          readOnly: true
+        facility_id:
+          type: string
+          format: uuid
+          readOnly: true
+        invoice:
+          type: string
+          format: uuid
+          readOnly: true
+        billable_event:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        chargeable_code:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          readOnly: true
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        line_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        tax_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          readOnly: true
+        tax_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - billable_event
+      - chargeable_code
+      - created_at
+      - description
+      - facility_id
+      - id
+      - invoice
+      - line_total
+      - quantity
+      - tax_amount
+      - tax_percent
+      - tenant_id
+      - unit_price
+      - updated_at
+    InvoiceLineCreate:
+      type: object
+      description: |-
+        Manual line creation.
+
+        Notes:
+        - unit_price is interpreted as:
+            * base price if price_includes_tax=false
+            * gross (tax-included) price if price_includes_tax=true
+        - If tax_percent is omitted and chargeable_code is provided, we try Charge Master.
+      properties:
+        description:
+          type: string
+          maxLength: 255
+        chargeable_code:
+          type: string
+          default: ''
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          default: '1.00'
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          default: '0.00'
+        tax_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        price_includes_tax:
+          type: boolean
+      required:
+      - description
+    InvoiceStatusEnum:
+      enum:
+      - DRAFT
+      - ISSUED
+      - PARTIALLY_PAID
+      - PAID
+      - VOID
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `ISSUED` - Issued
+        * `PARTIALLY_PAID` - Partially Paid
+        * `PAID` - Paid
+        * `VOID` - Void
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+      - password
+    LoginResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    LogoutResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    MeResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/MeUser'
+        memberships:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        active_scope:
+          allOf:
+          - $ref: '#/components/schemas/ActiveScope'
+          nullable: true
+      required:
+      - memberships
+      - user
+    MeUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        is_superuser:
+          type: boolean
+      required:
+      - id
+      - is_superuser
+    MethodEnum:
+      enum:
+      - CASH
+      - CARD
+      - UPI
+      - BANK
+      - INSURANCE
+      - OTHER
+      type: string
+      description: |-
+        * `CASH` - Cash
+        * `CARD` - Card
+        * `UPI` - UPI
+        * `BANK` - Bank Transfer
+        * `INSURANCE` - Insurance
+        * `OTHER` - Other
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        body:
+          type: string
+        channel:
+          $ref: '#/components/schemas/ChannelEnum'
+        is_read:
+          type: boolean
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        alert_id:
+          type: string
+          format: uuid
+          nullable: true
+          readOnly: true
+        encounter_id:
+          type: string
+          format: uuid
+          nullable: true
+        task_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        meta: {}
+      required:
+      - alert_id
+      - created_at
+      - id
+      - title
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        encounter:
+          type: string
+          format: uuid
+        order_type:
+          $ref: '#/components/schemas/OrderTypeEnum'
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        status:
+          $ref: '#/components/schemas/OrderStatusEnum'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+      required:
+      - encounter
+      - id
+      - items
+      - order_type
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        service_code:
+          type: string
+          maxLength: 64
+          pattern: ^[-a-zA-Z0-9_]+$
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        status:
+          $ref: '#/components/schemas/OrderItemStatusEnum'
+      required:
+      - id
+      - service_code
+    OrderItemStatusEnum:
+      enum:
+      - REQUESTED
+      type: string
+      description: '* `REQUESTED` - Requested'
+    OrderStatusEnum:
+      enum:
+      - CREATED
+      - CANCELLED
+      type: string
+      description: |-
+        * `CREATED` - Created
+        * `CANCELLED` - Cancelled
+    OrderTypeEnum:
+      enum:
+      - LAB
+      type: string
+      description: '* `LAB` - Lab'
+    PaginatedAlertList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        tenant_id:
+          type: string
+          format: uuid
+          readOnly: true
+        facility_id:
+          type: string
+          format: uuid
+          readOnly: true
+        invoice:
+          type: string
+          format: uuid
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        method:
+          allOf:
+          - $ref: '#/components/schemas/MethodEnum'
+          readOnly: true
+        reference:
+          type: string
+          readOnly: true
+        received_at:
+          type: string
+          format: date-time
+          readOnly: true
+        recorded_by_user_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - facility_id
+      - id
+      - invoice
+      - method
+      - received_at
+      - recorded_by_user_id
+      - reference
+      - tenant_id
+      - updated_at
+    PaymentCreate:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        method:
+          type: string
+          default: CASH
+        reference:
+          type: string
+          default: ''
+      required:
+      - amount
+    PriorityEnum:
+      enum:
+      - ROUTINE
+      - URGENT
+      - STAT
+      type: string
+      description: |-
+        * `ROUTINE` - Routine
+        * `URGENT` - Urgent
+        * `STAT` - Stat
+    RefreshResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    ScopeSwitchRequest:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        facility_id:
+          type: string
+          format: uuid
+      required:
+      - facility_id
+      - tenant_id
+    ScopeSwitchResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        active_scope:
+          $ref: '#/components/schemas/ActiveScope'
+      required:
+      - active_scope
+      - message
+    SeverityEnum:
+      enum:
+      - INFO
+      - WARNING
+      - CRITICAL
+      type: string
+      description: |-
+        * `INFO` - Info
+        * `WARNING` - Warning
+        * `CRITICAL` - Critical
+  securitySchemes:
+    CookieOrBearerJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Send `Authorization: Bearer <access>` OR rely on HttpOnly cookie
+        (e.g. `hm_access`). Scope headers required: `X-Tenant-ID`, `X-Facility-ID`.'

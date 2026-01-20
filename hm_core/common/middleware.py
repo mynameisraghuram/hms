@@ -40,6 +40,7 @@ class TenantFacilityScopeMiddleware(MiddlewareMixin):
       - For most endpoints: BOTH headers are required (400 if missing).
       - For /me/: headers are OPTIONAL, but if provided they must be valid and user must be a member.
       - For auth endpoints (login/refresh/logout): scope is ignored (never required).
+      - Docs/schema endpoints: always public (no scope required, no auth required).
       - If invalid UUIDs -> 400
       - If user not a member of facility -> 403
       - On success -> attaches request.scope, request.tenant_id, request.facility_id
@@ -50,14 +51,28 @@ class TenantFacilityScopeMiddleware(MiddlewareMixin):
 
     ENFORCED_PREFIXES = ("/api/v1/", "/api/")
 
+    # These endpoints must be reachable without scope (and without being authenticated)
+    PUBLIC_PATH_PREFIXES = (
+        "/admin/",
+        "/api/docs/",
+        "/api/schema/",
+    )
+
     AUTH_PATH_SUFFIXES = (
         "/auth/login/",
         "/auth/refresh/",
         "/auth/logout/",
     )
 
+    # Optional: don't block a visit to the API root prefixes
+    ALLOW_NO_SCOPE_EXACT_PATHS = (
+        "/api/v1/",
+        "/api/",
+    )
+
     ALLOW_NO_SCOPE_SUFFIXES = (
         "/me/",
+        "/session/bootstrap/",
     )
 
     MISSING_SCOPE_MSG = "Missing scope headers. Provide X-Tenant-Id and X-Facility-Id."
@@ -65,6 +80,9 @@ class TenantFacilityScopeMiddleware(MiddlewareMixin):
 
     def _is_api_path(self, path: str) -> bool:
         return any(path.startswith(p) for p in self.ENFORCED_PREFIXES)
+
+    def _starts_with_any(self, path: str, prefixes: tuple[str, ...]) -> bool:
+        return any(path.startswith(p) for p in prefixes)
 
     def _endswith_any(self, path: str, suffixes: tuple[str, ...]) -> bool:
         return any(path.endswith(s) for s in suffixes)
@@ -82,14 +100,27 @@ class TenantFacilityScopeMiddleware(MiddlewareMixin):
         request.facility_id = None
 
         path = getattr(request, "path", "") or ""
+
+        # Always allow docs/schema/admin without scope/auth.
+        if self._starts_with_any(path, self.PUBLIC_PATH_PREFIXES):
+            return None
+
+        # If it's not under /api/ or /api/v1/, ignore.
         if not self._is_api_path(path):
             return None
 
-        user = getattr(request, "user", None)
-        if not user or not user.is_authenticated:
+        # Allow visiting API roots without forcing scope (nicer developer UX).
+        if path in self.ALLOW_NO_SCOPE_EXACT_PATHS:
             return None
 
+        # Auth endpoints never require scope (even if user is authenticated).
         if self._endswith_any(path, self.AUTH_PATH_SUFFIXES):
+            return None
+
+        # If user isn't authenticated, don't enforce scope here.
+        # Auth/permission classes will return 401/403 where appropriate.
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
             return None
 
         tenant_raw = self._get_meta_first(request, self.TENANT_META_KEYS)

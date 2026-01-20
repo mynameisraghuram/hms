@@ -17,6 +17,7 @@ from hm_core.encounters.serializers import (
     AssessmentInputSerializer,
     PlanInputSerializer,
     VitalsInputSerializer,
+    EncounterSerializer,
 )
 from hm_core.encounters.services import EncounterService
 
@@ -88,6 +89,8 @@ def _validation_payload(exc) -> dict:
 
 class EncounterViewSet(viewsets.ViewSet):
     permission_classes = [EncounterPermission]
+    serializer_class = EncounterSerializer
+    queryset = Encounter.objects.none()
 
     def get_object(self, request, pk) -> Encounter:
         tenant_id, facility_id = _resolve_scope(request)

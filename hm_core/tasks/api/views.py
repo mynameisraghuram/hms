@@ -2,18 +2,29 @@
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
 from rest_framework.response import Response
 
 from hm_core.tasks.api.serializers import TaskSerializer
+from hm_core.tasks.models import Task
 from hm_core.tasks.permissions import TaskPermission
 from hm_core.tasks.selectors import TaskSelector
 from hm_core.tasks.services import TaskService
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Tasks"], operation_id="v1_tasks_list", responses={200: TaskSerializer(many=True)}),
+    assign=extend_schema(tags=["Tasks"], operation_id="v1_tasks_assign", responses={200: TaskSerializer}),
+    unassign=extend_schema(tags=["Tasks"], operation_id="v1_tasks_unassign", responses={200: TaskSerializer}),
+    start=extend_schema(tags=["Tasks"], operation_id="v1_tasks_start", responses={200: TaskSerializer}),
+    done=extend_schema(tags=["Tasks"], operation_id="v1_tasks_done", responses={200: TaskSerializer}),
+    reopen=extend_schema(tags=["Tasks"], operation_id="v1_tasks_reopen", responses={200: TaskSerializer}),
+    cancel=extend_schema(tags=["Tasks"], operation_id="v1_tasks_cancel", responses={200: TaskSerializer}),
+    backfill_done=extend_schema(tags=["Tasks"], operation_id="v1_tasks_backfill_done"),
+)
 class TaskViewSet(viewsets.ViewSet):
     """
     Thin API layer:
@@ -25,11 +36,11 @@ class TaskViewSet(viewsets.ViewSet):
 
     permission_classes = [TaskPermission]
 
+    # ✅ critical for drf-spectacular
+    serializer_class = TaskSerializer
+    queryset = Task.objects.none()
+
     def _scope_ids(self, request):
-        """
-        Prefer request.tenant_id / request.facility_id if middleware/auth set them.
-        Otherwise fall back to headers.
-        """
         tenant_id = getattr(request, "tenant_id", None) or request.META.get("HTTP_X_TENANT_ID")
         facility_id = getattr(request, "facility_id", None) or request.META.get("HTTP_X_FACILITY_ID")
         return tenant_id, facility_id
@@ -48,22 +59,10 @@ class TaskViewSet(viewsets.ViewSet):
             raise NotFound("Task not found in this scope.")
 
     def _map_django_validation_error(self, e: DjangoValidationError):
-        """
-        Convert DjangoValidationError into DRFValidationError with field-keyed payload
-        whenever possible (tests expect this).
-        """
         if hasattr(e, "message_dict") and isinstance(e.message_dict, dict) and e.message_dict:
             raise DRFValidationError(e.message_dict)
 
-        msg = ""
-        if hasattr(e, "message"):
-            msg = str(e.message)
-        else:
-            msg = str(e)
-
-        # Heuristic mapping for selector-generated messages like:
-        # "due_before is invalid. Use ISO datetime."
-        # "ordering is invalid. Allowed: [...]"
+        msg = str(getattr(e, "message", e))
         lowered = msg.lower()
         if lowered.startswith("due_before"):
             raise DRFValidationError({"due_before": msg})
@@ -90,7 +89,7 @@ class TaskViewSet(viewsets.ViewSet):
         except DjangoValidationError as e:
             self._map_django_validation_error(e)
 
-        return Response(TaskSerializer(qs[:300], many=True).data)
+        return Response(TaskSerializer(qs[:300], many=True).data, status=status.HTTP_200_OK)
 
     # ----------------------------
     # Workflow / assignment actions

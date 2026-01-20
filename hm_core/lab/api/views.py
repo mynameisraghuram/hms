@@ -17,6 +17,7 @@ from hm_core.lab.api.serializers import (
 )
 from hm_core.lab.services import LabService
 
+from hm_core.lab.models import LabSample, LabResult
 
 def _get_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | None]:
     tenant_id = getattr(request, "tenant_id", None)
@@ -39,6 +40,9 @@ def _get_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | Non
 
 
 class LabSampleViewSet(viewsets.ViewSet):
+
+    serializer_class = LabSampleSerializer
+    queryset = LabSample.objects.none()
     @action(detail=False, methods=["post"], url_path="receive")
     def receive(self, request):
         tenant_id, facility_id, err = _get_scope_or_400(request)
@@ -70,6 +74,8 @@ class LabSampleViewSet(viewsets.ViewSet):
 
 
 class LabResultViewSet(viewsets.ViewSet):
+    serializer_class = LabResultSerializer
+    queryset = LabResult.objects.none()
     def create(self, request):
         tenant_id, facility_id, err = _get_scope_or_400(request)
         if err is not None:
