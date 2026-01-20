@@ -1,3 +1,4 @@
+# backend/hm_core/encounters/api/views.py
 from __future__ import annotations
 
 from uuid import UUID
@@ -9,12 +10,14 @@ from rest_framework.exceptions import ErrorDetail, ValidationError as DRFValidat
 from rest_framework.response import Response
 
 from hm_core.common.api.exceptions import ConflictError
+from hm_core.common.api.pagination import paginate
 from hm_core.common.permissions import EncounterPermission
 from hm_core.common.scope import require_scope
 from hm_core.encounters.models import Encounter
 from hm_core.encounters.selectors import EncounterSelectors
 from hm_core.encounters.serializers import (
     AssessmentInputSerializer,
+    EncounterCreateSerializer,
     EncounterSerializer,
     PlanInputSerializer,
     VitalsInputSerializer,
@@ -76,6 +79,56 @@ class EncounterViewSet(viewsets.ViewSet):
             facility_id=scope.facility_id,
         )
 
+    # ------------------------------------------------------------
+    # CRUD-ish endpoints for frontend screens
+    # ------------------------------------------------------------
+    def list(self, request):
+        scope = require_scope(request)
+
+        patient_raw = request.query_params.get("patient") or request.query_params.get("patient_id")
+        status_q = request.query_params.get("status")
+
+        patient_id = None
+        if patient_raw:
+            patient_id = UUID(str(patient_raw))
+
+        qs = EncounterSelectors.list_encounters(
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
+            patient_id=patient_id,
+            status=status_q,
+        )
+        return paginate(request, qs, EncounterSerializer)
+
+    def retrieve(self, request, pk=None):
+        enc = self.get_object(request, pk)
+        return Response(EncounterSerializer(enc).data, status=status.HTTP_200_OK)
+
+    def create(self, request):
+        scope = require_scope(request)
+        actor_user_id = getattr(request.user, "id", None)
+
+        ser = EncounterCreateSerializer(data=request.data or {})
+        ser.is_valid(raise_exception=True)
+
+        try:
+            enc = EncounterService.create(
+                tenant_id=scope.tenant_id,
+                facility_id=scope.facility_id,
+                patient_id=ser.validated_data["patient_id"],
+                actor_user_id=actor_user_id,
+                reason=ser.validated_data.get("reason", "") or "",
+                attending_doctor_id=ser.validated_data.get("attending_doctor_id", None),
+                scheduled_at=ser.validated_data.get("scheduled_at", None),
+            )
+        except ValueError as e:
+            raise DRFValidationError({"detail": str(e)})
+
+        return Response(EncounterSerializer(enc).data, status=status.HTTP_201_CREATED)
+
+    # ------------------------------------------------------------
+    # Existing workflow endpoints (unchanged)
+    # ------------------------------------------------------------
     @action(detail=True, methods=["post"], url_path="checkin")
     def checkin(self, request, pk=None):
         scope = require_scope(request)

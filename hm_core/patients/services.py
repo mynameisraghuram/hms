@@ -49,3 +49,41 @@ class PatientService:
             metadata={"mrn": mrn},
         )
         return patient
+
+    @staticmethod
+    @transaction.atomic
+    def update_patient(
+        *,
+        tenant_id: UUID,
+        facility_id: UUID,
+        actor_user_id: int | None,
+        patient_id: UUID,
+        data: dict,
+    ) -> Patient:
+        patient = Patient.objects.get(
+            id=patient_id,
+            tenant_id=tenant_id,
+            facility_id=facility_id,
+        )
+
+        allowed = {"full_name", "mrn", "phone", "email", "gender", "date_of_birth"}
+        updates = {k: v for k, v in (data or {}).items() if k in allowed}
+
+        for k, v in updates.items():
+            setattr(patient, k, v)
+
+        try:
+            patient.save()
+        except IntegrityError:
+            raise ValueError("MRN already exists for this tenant/facility.")
+
+        AuditService.log(
+            event_code="patient.updated",
+            entity_type="Patient",
+            entity_id=patient.id,
+            tenant_id=tenant_id,
+            facility_id=facility_id,
+            actor_user_id=actor_user_id,
+            metadata={"updated_fields": sorted(list(updates.keys()))},
+        )
+        return patient

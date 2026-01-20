@@ -15,6 +15,23 @@ class PatientCreateSerializer(serializers.Serializer):
     date_of_birth = serializers.DateField(required=False, allow_null=True)
 
 
+class PatientUpdateSerializer(serializers.Serializer):
+    """
+    Partial update contract (PATCH).
+    """
+    full_name = serializers.CharField(max_length=255, required=False)
+    mrn = serializers.CharField(max_length=64, required=False)
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    gender = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError("At least one field is required.")
+        return attrs
+
+
 class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
