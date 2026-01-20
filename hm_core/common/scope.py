@@ -1,15 +1,13 @@
-# backend/hm_core/common/scope.py
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional
 from uuid import UUID
 
-from rest_framework import status
-from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
-# Reuse the canonical messages from iam.scope (single source of truth)
-from hm_core.iam.scope import MISSING_SCOPE_MSG, INVALID_SCOPE_MSG
+# Reuse canonical messages from iam.scope (single source of truth)
+from hm_core.iam.scope import INVALID_SCOPE_MSG, MISSING_SCOPE_MSG
 
 
 @dataclass(frozen=True)
@@ -18,7 +16,7 @@ class Scope:
     facility_id: UUID
 
 
-# Preferred header names (what we standardize on)
+# Preferred header names (standard)
 HDR_TENANT = "X-Tenant-Id"
 HDR_FACILITY = "X-Facility-Id"
 
@@ -56,9 +54,10 @@ def _get_header(request, name: str) -> Optional[str]:
 
 def resolve_scope(request) -> Optional[Scope]:
     """
-    Returns Scope if BOTH headers are present and valid.
-    Returns None if NO scope headers are present at all.
-    Raises nothing (pure resolver).
+    Pure resolver:
+    - Returns Scope if BOTH headers are present and valid
+    - Returns None if NO scope headers are present at all
+    - Returns sentinel Scope(None,None) behavior is NOT used here; we just return None or Scope
     """
     # Prefer middleware-attached values if present
     t = getattr(request, "tenant_id", None)
@@ -69,7 +68,6 @@ def resolve_scope(request) -> Optional[Scope]:
         if tu and fu:
             return Scope(tenant_id=tu, facility_id=fu)
 
-    # Otherwise read headers (preferred + legacy)
     tenant_raw = (
         _get_header(request, HDR_TENANT)
         or _get_header(request, HDR_TENANT_LEGACY)
@@ -87,51 +85,30 @@ def resolve_scope(request) -> Optional[Scope]:
         return None
 
     if not tenant_raw or not facility_raw:
-        # Partial headers present -> treat as invalid usage (caller decides response)
-        return Scope(tenant_id=None, facility_id=None)  # type: ignore
+        # Partial scope headers present
+        raise ValidationError(MISSING_SCOPE_MSG)
 
     tenant_id = _parse_uuid(tenant_raw)
     facility_id = _parse_uuid(facility_raw)
     if not tenant_id or not facility_id:
-        return Scope(tenant_id=None, facility_id=None)  # type: ignore
+        raise ValidationError(INVALID_SCOPE_MSG)
 
     return Scope(tenant_id=tenant_id, facility_id=facility_id)
 
 
-def require_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | None]:
+def require_scope(request) -> Scope:
     """
-    Returns (tenant_id, facility_id, error_response).
-
-    - If missing -> 400 with MISSING_SCOPE_MSG
-    - If invalid -> 400 with INVALID_SCOPE_MSG
-    - If ok -> (tenant_id, facility_id, None)
-
-    Does NOT check membership — membership is enforced by middleware/auth/permission layer.
-    (So this stays reusable and doesn’t create circular dependencies.)
+    DRF-friendly scope requirement:
+    - If missing -> raises ValidationError(MISSING_SCOPE_MSG)
+    - If invalid -> raises ValidationError(INVALID_SCOPE_MSG)
+    - If ok -> returns Scope and attaches request.tenant_id / request.facility_id / request.scope
     """
     scope = resolve_scope(request)
-
     if scope is None:
-        return None, None, Response({"detail": MISSING_SCOPE_MSG}, status=status.HTTP_400_BAD_REQUEST)
+        raise ValidationError(MISSING_SCOPE_MSG)
 
-    # We used a sentinel invalid Scope(tenant_id=None,...)
-    if getattr(scope, "tenant_id", None) is None or getattr(scope, "facility_id", None) is None:
-        # Distinguish missing-vs-invalid:
-        # If one header missing, resolve_scope returns the sentinel too.
-        tenant_present = any(
-            _get_header(request, h)
-            for h in (HDR_TENANT, HDR_TENANT_LEGACY, HDR_TENANT_HM, HDR_TENANT_HM_LEGACY)
-        )
-        facility_present = any(
-            _get_header(request, h)
-            for h in (HDR_FACILITY, HDR_FACILITY_LEGACY, HDR_FACILITY_HM, HDR_FACILITY_HM_LEGACY)
-        )
-        msg = INVALID_SCOPE_MSG if (tenant_present and facility_present) else MISSING_SCOPE_MSG
-        return None, None, Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Attach for downstream consistency (optional but helpful)
+    # Attach for downstream consistency
     request.tenant_id = scope.tenant_id
     request.facility_id = scope.facility_id
     request.scope = scope
-
-    return scope.tenant_id, scope.facility_id, None
+    return scope

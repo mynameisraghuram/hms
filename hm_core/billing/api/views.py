@@ -1,4 +1,3 @@
-# backend/hm_core/billing/api/views.py
 from __future__ import annotations
 
 from decimal import Decimal
@@ -8,6 +7,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -25,32 +25,22 @@ from hm_core.billing.models import BillableEvent, Invoice
 from hm_core.billing.selectors import billable_events_filtered, invoices_filtered
 from hm_core.billing.services import InvoiceService, PaymentService
 from hm_core.charges.selectors import get_active_charge_item
+from hm_core.common.api.pagination import paginate
+from hm_core.common.scope import require_scope
 from hm_core.facilities.models import Facility, PricingTaxMode
-from hm_core.iam.scope import MISSING_SCOPE_MSG, resolve_scope_from_headers
 
 
-def _get_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | None]:
-    tenant_id = getattr(request, "tenant_id", None)
-    facility_id = getattr(request, "facility_id", None)
-
-    if not tenant_id or not facility_id:
-        scope = resolve_scope_from_headers(request)
-        if scope:
-            tenant_id = scope.tenant_id
-            facility_id = scope.facility_id
-
-    if not tenant_id or not facility_id:
-        return None, None, Response({"detail": MISSING_SCOPE_MSG}, status=status.HTTP_400_BAD_REQUEST)
-
-    return tenant_id, facility_id, None
+def _uuid_or_none(value: str | None, field_name: str) -> UUID | None:
+    if not value:
+        return None
+    try:
+        return UUID(str(value))
+    except Exception:
+        raise DRFValidationError({field_name: "Invalid UUID"})
 
 
 def _facility_tax_mode(*, tenant_id: UUID, facility_id: UUID) -> str:
-    facility = (
-        Facility.objects.filter(tenant_id=tenant_id, id=facility_id)
-        .only("pricing_tax_mode")
-        .first()
-    )
+    facility = Facility.objects.filter(tenant_id=tenant_id, id=facility_id).only("pricing_tax_mode").first()
     return facility.pricing_tax_mode if facility else PricingTaxMode.EXCLUSIVE
 
 
@@ -82,24 +72,19 @@ class BillableEventViewSet(viewsets.GenericViewSet):
         ],
     )
     def list(self, request):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
-        enc = request.query_params.get("encounter")
-        pat = request.query_params.get("patient")
-
-        encounter_id = UUID(enc) if enc else None
-        patient_id = UUID(pat) if pat else None
+        encounter_id = _uuid_or_none(request.query_params.get("encounter"), "encounter")
+        patient_id = _uuid_or_none(request.query_params.get("patient"), "patient")
 
         qs = billable_events_filtered(
-            tenant_id=tenant_id,
-            facility_id=facility_id,
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
             encounter_id=encounter_id,
             patient_id=patient_id,
         )
 
-        return Response(BillableEventSerializer(qs, many=True).data, status=status.HTTP_200_OK)
+        return paginate(request, qs, BillableEventSerializer)
 
 
 class InvoiceViewSet(viewsets.GenericViewSet):
@@ -113,8 +98,6 @@ class InvoiceViewSet(viewsets.GenericViewSet):
     - lines: GET/POST (manual add)
     """
     serializer_class = InvoiceSerializer
-
-    # ✅ Critical for drf-spectacular: lets it infer UUID path params cleanly.
     queryset = Invoice.objects.none()
 
     @extend_schema(
@@ -127,35 +110,31 @@ class InvoiceViewSet(viewsets.GenericViewSet):
         ],
     )
     def list(self, request):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
-        patient = request.query_params.get("patient")
-        encounter = request.query_params.get("encounter")
+        patient_id = _uuid_or_none(request.query_params.get("patient"), "patient")
+        encounter_id = _uuid_or_none(request.query_params.get("encounter"), "encounter")
         status_q = request.query_params.get("status")
 
         qs = invoices_filtered(
-            tenant_id=tenant_id,
-            facility_id=facility_id,
-            patient_id=UUID(patient) if patient else None,
-            encounter_id=UUID(encounter) if encounter else None,
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
+            patient_id=patient_id,
+            encounter_id=encounter_id,
             status=status_q,
         )
 
-        return Response(InvoiceSerializer(qs, many=True).data, status=status.HTTP_200_OK)
+        return paginate(request, qs, InvoiceSerializer)
 
     @extend_schema(
         tags=["Billing"],
         responses={200: InvoiceSerializer},
     )
     def retrieve(self, request, pk=None):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
         inv_id = UUID(str(pk))
-        inv = invoices_filtered(tenant_id=tenant_id, facility_id=facility_id).get(id=inv_id)
+        inv = invoices_filtered(tenant_id=scope.tenant_id, facility_id=scope.facility_id).get(id=inv_id)
         return Response(InvoiceSerializer(inv).data, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -164,9 +143,7 @@ class InvoiceViewSet(viewsets.GenericViewSet):
         responses={201: InvoiceSerializer},
     )
     def create(self, request):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
         ser = InvoiceCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -176,8 +153,8 @@ class InvoiceViewSet(viewsets.GenericViewSet):
         notes = ser.validated_data.get("notes", "")
 
         inv = InvoiceService.create_draft(
-            tenant_id=tenant_id,
-            facility_id=facility_id,
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
             patient_id=patient_id,
             encounter_id=encounter_id,
             notes=notes,
@@ -187,22 +164,18 @@ class InvoiceViewSet(viewsets.GenericViewSet):
     @extend_schema(
         tags=["Billing"],
         request=InvoiceGenerateFromEventsSerializer,
-        responses={
-            200: OpenApiTypes.OBJECT,
-        },
+        responses={200: OpenApiTypes.OBJECT},
     )
     @action(detail=True, methods=["post"], url_path="generate_from_events")
     def generate_from_events(self, request, pk=None):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
         ser = InvoiceGenerateFromEventsSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
         created = InvoiceService.generate_from_billable_events(
-            tenant_id=tenant_id,
-            facility_id=facility_id,
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
             invoice_id=UUID(str(pk)),
             encounter_id=ser.validated_data.get("encounter"),
             patient_id=ser.validated_data.get("patient"),
@@ -216,13 +189,11 @@ class InvoiceViewSet(viewsets.GenericViewSet):
     )
     @action(detail=True, methods=["post"], url_path="issue")
     def issue(self, request, pk=None):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
         inv = InvoiceService.issue(
-            tenant_id=tenant_id,
-            facility_id=facility_id,
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
             invoice_id=UUID(str(pk)),
         )
         return Response(InvoiceSerializer(inv).data, status=status.HTTP_200_OK)
@@ -243,17 +214,15 @@ class InvoiceViewSet(viewsets.GenericViewSet):
     )
     @action(detail=True, methods=["post"], url_path="void")
     def void(self, request, pk=None):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
         reason = ""
         if isinstance(request.data, dict):
             reason = request.data.get("reason", "") or ""
 
         inv = InvoiceService.void(
-            tenant_id=tenant_id,
-            facility_id=facility_id,
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
             invoice_id=UUID(str(pk)),
             reason=reason,
         )
@@ -273,21 +242,12 @@ class InvoiceViewSet(viewsets.GenericViewSet):
         /billing/invoices/<invoice_id>/lines/
         - GET: list lines
         - POST: add manual line to DRAFT invoice
-
-        Defaults:
-        - If price_includes_tax is omitted, we default based on facility.pricing_tax_mode:
-            * INCLUSIVE => includes tax
-            * EXCLUSIVE => excludes tax
-        - If tax_percent omitted and chargeable_code present, we try Charge Master tax_percent.
         """
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
-
+        scope = require_scope(request)
         invoice_id = UUID(str(pk))
 
         if request.method.lower() == "get":
-            inv = invoices_filtered(tenant_id=tenant_id, facility_id=facility_id).get(id=invoice_id)
+            inv = invoices_filtered(tenant_id=scope.tenant_id, facility_id=scope.facility_id).get(id=invoice_id)
             qs = inv.lines.order_by("created_at")
             return Response(InvoiceLineSerializer(qs, many=True).data, status=status.HTTP_200_OK)
 
@@ -303,8 +263,8 @@ class InvoiceViewSet(viewsets.GenericViewSet):
 
         if tax_percent is None and chargeable_code:
             charge = get_active_charge_item(
-                tenant_id=tenant_id,
-                facility_id=facility_id,
+                tenant_id=scope.tenant_id,
+                facility_id=scope.facility_id,
                 code=chargeable_code,
             )
             if charge:
@@ -313,11 +273,10 @@ class InvoiceViewSet(viewsets.GenericViewSet):
         tax_percent = Decimal(str(tax_percent or "0.00")).quantize(Decimal("0.01"))
 
         if price_includes_tax is None:
-            mode = _facility_tax_mode(tenant_id=tenant_id, facility_id=facility_id)
+            mode = _facility_tax_mode(tenant_id=scope.tenant_id, facility_id=scope.facility_id)
             price_includes_tax = (mode == PricingTaxMode.INCLUSIVE)
 
         if price_includes_tax and tax_percent > Decimal("0.00"):
-            # Inclusive: compute base+tax at LINE TOTAL level to avoid 0.01 drift
             gross_line_total = (quantity * unit_price_in).quantize(Decimal("0.01"))
             divisor = (Decimal("1.00") + (tax_percent / Decimal("100.00")))
 
@@ -327,8 +286,8 @@ class InvoiceViewSet(viewsets.GenericViewSet):
             base_unit_price = (base_line_total / quantity).quantize(Decimal("0.01")) if quantity > 0 else Decimal("0.00")
 
             line = InvoiceService.add_line(
-                tenant_id=tenant_id,
-                facility_id=facility_id,
+                tenant_id=scope.tenant_id,
+                facility_id=scope.facility_id,
                 invoice_id=invoice_id,
                 description=description,
                 chargeable_code=chargeable_code,
@@ -340,10 +299,9 @@ class InvoiceViewSet(viewsets.GenericViewSet):
                 tax_amount_override=tax_amount,
             )
         else:
-            # Exclusive: base price + computed tax
             line = InvoiceService.add_line(
-                tenant_id=tenant_id,
-                facility_id=facility_id,
+                tenant_id=scope.tenant_id,
+                facility_id=scope.facility_id,
                 invoice_id=invoice_id,
                 description=description,
                 chargeable_code=chargeable_code,
@@ -368,12 +326,10 @@ class InvoicePaymentsView(APIView):
         responses={200: PaymentSerializer(many=True)},
     )
     def get(self, request, invoice_id: UUID):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
         inv_id = UUID(str(invoice_id))
-        inv = invoices_filtered(tenant_id=tenant_id, facility_id=facility_id).get(id=inv_id)
+        inv = invoices_filtered(tenant_id=scope.tenant_id, facility_id=scope.facility_id).get(id=inv_id)
 
         payments = inv.payments.order_by("-received_at")
         return Response(PaymentSerializer(payments, many=True).data, status=status.HTTP_200_OK)
@@ -384,16 +340,14 @@ class InvoicePaymentsView(APIView):
         responses={201: PaymentSerializer},
     )
     def post(self, request, invoice_id: UUID):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err:
-            return err
+        scope = require_scope(request)
 
         ser = PaymentCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
         pay = PaymentService.record_payment(
-            tenant_id=tenant_id,
-            facility_id=facility_id,
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
             invoice_id=UUID(str(invoice_id)),
             amount=Decimal(str(ser.validated_data["amount"])),
             method=ser.validated_data.get("method", "CASH"),

@@ -1,39 +1,18 @@
-# backend/hm_core/audit/api/views.py
 from __future__ import annotations
 
 from uuid import UUID
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import status, viewsets
+from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 
 from hm_core.audit.api.serializers import AuditEventSerializer
 from hm_core.audit.models import AuditEvent
 from hm_core.audit.selectors import list_audit_events
-from hm_core.iam.scope import MISSING_SCOPE_MSG, resolve_scope_from_headers
-
-
-def _get_scope_or_400(request) -> tuple[UUID | None, UUID | None, Response | None]:
-    tenant_id = getattr(request, "tenant_id", None)
-    facility_id = getattr(request, "facility_id", None)
-
-    if tenant_id and facility_id:
-        try:
-            return UUID(str(tenant_id)), UUID(str(facility_id)), None
-        except Exception:
-            return None, None, Response({"detail": MISSING_SCOPE_MSG}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        scope = resolve_scope_from_headers(request)
-    except Exception:
-        return None, None, Response({"detail": MISSING_SCOPE_MSG}, status=status.HTTP_400_BAD_REQUEST)
-
-    if scope is None:
-        return None, None, Response({"detail": MISSING_SCOPE_MSG}, status=status.HTTP_400_BAD_REQUEST)
-
-    return scope.tenant_id, scope.facility_id, None
+from hm_core.common.api.pagination import DefaultPagination, paginate
+from hm_core.common.scope import require_scope
 
 
 class AuditEventViewSet(viewsets.GenericViewSet):
@@ -42,7 +21,6 @@ class AuditEventViewSet(viewsets.GenericViewSet):
     """
     permission_classes = [IsAuthenticated]
 
-    # ✅ Makes drf-spectacular happy:
     serializer_class = AuditEventSerializer
     queryset = AuditEvent.objects.none()
 
@@ -83,14 +61,12 @@ class AuditEventViewSet(viewsets.GenericViewSet):
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 required=False,
-                description="Max records to return (default 200, max 500).",
+                description="Optional alias for page_size (max 500). Prefer page/page_size.",
             ),
         ],
     )
     def list(self, request):
-        tenant_id, facility_id, err = _get_scope_or_400(request)
-        if err is not None:
-            return err
+        scope = require_scope(request)
 
         entity_type = request.query_params.get("entity_type") or None
         entity_id_raw = request.query_params.get("entity_id") or None
@@ -102,30 +78,35 @@ class AuditEventViewSet(viewsets.GenericViewSet):
             try:
                 entity_id = UUID(str(entity_id_raw))
             except Exception:
-                return Response({"detail": "Invalid entity_id (UUID expected)"}, status=status.HTTP_400_BAD_REQUEST)
+                raise DRFValidationError({"entity_id": "Invalid UUID"})
 
         actor_user_id = None
         if actor_user_raw is not None and actor_user_raw != "":
             try:
                 actor_user_id = int(actor_user_raw)
             except Exception:
-                return Response({"detail": "Invalid actor_user_id (int expected)"}, status=status.HTTP_400_BAD_REQUEST)
+                raise DRFValidationError({"actor_user_id": "Invalid int"})
 
         qs = list_audit_events(
-            tenant_id=tenant_id,
-            facility_id=facility_id,
+            tenant_id=scope.tenant_id,
+            facility_id=scope.facility_id,
             entity_type=entity_type,
             entity_id=entity_id,
             event_code=event_code,
             actor_user_id=actor_user_id,
         )
 
-        # keep it safe: timeline endpoints can get huge
+        # Support legacy `limit` as alias for page_size but keep paginated contract.
         limit = request.query_params.get("limit")
-        try:
-            limit_n = int(limit) if limit else 200
-        except Exception:
-            limit_n = 200
-        limit_n = max(1, min(limit_n, 500))
+        paginator = None
+        if limit:
+            try:
+                n = int(limit)
+                n = max(1, min(n, 500))
+                paginator = DefaultPagination()
+                paginator.page_size = n
+            except Exception:
+                # If invalid, just ignore and use default pagination.
+                paginator = None
 
-        return Response(AuditEventSerializer(qs[:limit_n], many=True).data, status=status.HTTP_200_OK)
+        return paginate(request, qs, AuditEventSerializer, paginator=paginator)

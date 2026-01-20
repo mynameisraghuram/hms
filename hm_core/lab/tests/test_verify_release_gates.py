@@ -89,7 +89,17 @@ def test_release_retry_storm_no_duplicates(api_client, tenant, facility, encount
         **scoped(tenant, facility),
     )
     assert ev.status_code == 200, ev.data
-    assert len(ev.data) == 1, ev.data
+
+    # billing/events is paginated (Bundle-1)
+    if isinstance(ev.data, dict) and "results" in ev.data:
+        assert ev.data["count"] == 1, ev.data
+        assert len(ev.data["results"]) == 1, ev.data
+        ev_rows = ev.data["results"]
+    else:
+        # fallback for any legacy behavior
+        ev_rows = ev.data
+
+    assert len(ev_rows) == 1, ev_rows
 
     # No Alerts app in Phase-1 core: we do NOT check /alerts/
     # Instead ensure exactly one ACK task exists.
@@ -98,5 +108,12 @@ def test_release_retry_storm_no_duplicates(api_client, tenant, facility, encount
         **scoped(tenant, facility),
     )
     assert tasks.status_code == 200, tasks.data
-    ack_tasks = [t for t in tasks.data if t.get("code") in ("critical-result-ack", "CRITICAL_RESULT_ACK")]
+
+    # tasks may be list OR paginated depending on implementation
+    if isinstance(tasks.data, dict) and "results" in tasks.data:
+        rows = tasks.data["results"]
+    else:
+        rows = tasks.data
+
+    ack_tasks = [t for t in rows if t.get("code") in ("critical-result-ack", "CRITICAL_RESULT_ACK")]
     assert len(ack_tasks) == 1, ack_tasks

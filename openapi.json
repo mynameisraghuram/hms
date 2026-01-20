@@ -39,12 +39,39 @@
                         "required": true
                     },
                     {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Which field to use when ordering the results.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "A search term.",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 ],
@@ -304,12 +331,39 @@
                         "description": "Max records to return (default 200, max 500)."
                     },
                     {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Which field to use when ordering the results.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "A search term.",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 ],
@@ -517,10 +571,28 @@
                         "description": "Filter by encounter UUID."
                     },
                     {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Which field to use when ordering the results.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
                         "schema": {
                             "type": "integer"
                         }
@@ -533,6 +605,15 @@
                             "format": "uuid"
                         },
                         "description": "Filter by patient UUID."
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "A search term.",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "tags": [
@@ -602,10 +683,28 @@
                         }
                     },
                     {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Which field to use when ordering the results.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
                         "schema": {
                             "type": "integer"
                         }
@@ -616,6 +715,15 @@
                         "schema": {
                             "type": "string",
                             "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "A search term.",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     {
@@ -1156,12 +1264,39 @@
                         "required": true
                     },
                     {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Which field to use when ordering the results.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "A search term.",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 ],
@@ -1242,12 +1377,39 @@
                         "required": true
                     },
                     {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Which field to use when ordering the results.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "A search term.",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 ],
@@ -3172,12 +3334,39 @@
                         "required": true
                     },
                     {
+                        "name": "ordering",
+                        "required": false,
+                        "in": "query",
+                        "description": "Which field to use when ordering the results.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "page",
                         "required": false,
                         "in": "query",
                         "description": "A page number within the paginated result set.",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "required": false,
+                        "in": "query",
+                        "description": "Number of results to return per page.",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "required": false,
+                        "in": "query",
+                        "description": "A search term.",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 ],
@@ -3666,6 +3855,59 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Patient"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/session/bootstrap/": {
+            "get": {
+                "operationId": "session_bootstrap_retrieve",
+                "description": "Frontend bootstrap endpoint.\n\n- Requires auth (cookie or header JWT).\n- Scope headers OPTIONAL.\n  - If provided -> validated + membership enforced.\n  - If not provided -> server chooses a default scope from memberships.\n- Returns everything needed for UI initialization.",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Idempotency-Key",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Optional idempotency key for safely retrying POST/PUT requests. Strongly recommended for client retries."
+                    },
+                    {
+                        "in": "header",
+                        "name": "X-Facility-Id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "X-Tenant-Id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "tags": [
+                    "IAM"
+                ],
+                "security": [
+                    {
+                        "BearerOrCookieJWT": []
+                    },
+                    {
+                        "BearerOrCookieJWT": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SessionBootstrapResponse"
                                 }
                             }
                         },
@@ -5244,6 +5486,26 @@
                     "updated_at"
                 ]
             },
+            "FacilityMini": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            },
             "FacilityRequest": {
                 "type": "object",
                 "properties": {
@@ -6605,6 +6867,26 @@
                     "detail"
                 ]
             },
+            "Role": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "code",
+                    "id",
+                    "name"
+                ]
+            },
             "ScopeSwitchRequestRequest": {
                 "type": "object",
                 "properties": {
@@ -6635,6 +6917,74 @@
                 "required": [
                     "active_scope",
                     "message"
+                ]
+            },
+            "SessionBootstrapResponse": {
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "$ref": "#/components/schemas/MeUser"
+                    },
+                    "memberships": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {}
+                        }
+                    },
+                    "active_scope": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActiveScope"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "active_tenant": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/TenantMini"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "active_facility": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/FacilityMini"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "active_role": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Role"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "feature_flags": {
+                        "type": "object",
+                        "additionalProperties": {}
+                    },
+                    "server_time": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "api_version": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "memberships",
+                    "user"
                 ]
             },
             "Task": {
@@ -6822,6 +7172,26 @@
                 },
                 "required": [
                     "metadata"
+                ]
+            },
+            "TenantMini": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "id"
                 ]
             },
             "TenantStatusUpdateRequest": {
